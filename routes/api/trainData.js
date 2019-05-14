@@ -1,5 +1,7 @@
 const Train = require('../../models/trainDetails');
 const User = require('../../models/userDetails');
+const nodemailer = require('nodemailer');
+const pwd = require('../../credentials/email');
 
 module.exports = (app) => {
     app.get('/', (req, res, next) => {
@@ -169,6 +171,182 @@ module.exports = (app) => {
         })
     });
 
+    //Add Train Booking Details to the Database
+    app.post('/bookings/add', (req, res) => {
+
+    });
+
+    //Sampath Bank Credit Card Service
+
+    app.get('/sampath/creditCard/validation', (req, res) => {
+        let cardName = req.body.cardName;
+        let cardNum = req.body.cardNum;
+        let cvcNum = req.body.cvcNum;
+        let exDate = req.body.exDate;
+        let totalBill = req.body.totalBill;
+
+
+        if (!cardName) {
+            return res.send({
+                success: false,
+                message: "Card Name Cannot be Empty !"
+            })
+        }
+
+        if (!cardNum) {
+            return res.send({
+                success: false,
+                message: "Card Number Cannot be Empty !"
+            })
+        }
+        if (!cvcNum) {
+            return res.send({
+                success: false,
+                message: "CVC Number Cannot be Empty !"
+            })
+        }
+        if (!exDate) {
+            return res.send({
+                success: false,
+                message: "Expiration Date Cannot be Empty !"
+            })
+        }
+        if (!totalBill) {
+            return res.send({
+                success: false,
+                message: "Total Bill Cannot be Empty !"
+            })
+        }
+
+        if (cardNum === '0000000000000000') {
+            return res.send({
+                success: false,
+                message: "Error : Invalid Card Number !"
+            })
+        }
+        let details = {
+            cardName,
+            cardNum,
+            cvcNum,
+            exDate,
+            totalBill
+        };
+
+        return res.send({
+            success: true,
+            message: "Payment Completed Successfully !",
+            details: details
+        })
+
+    });
+
+    //To send emails when a booking is done
+    app.post('/bookings/sendMail', (req, res) => {
+
+        let to = req.body.to;
+        let subject = req.body.subject;
+        let content = req.body.content;
+
+        if (!to) {
+            return res.send({
+                success: false,
+                message: 'Error : Recipient Cannot be Empty !'
+            })
+        }
+
+        if (!subject) {
+            return res.send({
+                success: false,
+                message: 'Error : Subject Cannot be Empty !'
+            })
+        }
+
+        if (!content) {
+            return res.send({
+                success: false,
+                message: 'Error : '
+            })
+        }
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: pwd.email,
+                pass: pwd.pwd
+            }
+        });
+
+        const mailOptions = {
+            from: pwd.email,
+            to: to,
+            subject: subject,
+            html: content
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+                return res.send(info.response);
+            }
+        });
+
+    });
+
+    //Validate Government User via the NIC
+
+    app.post('/gov/employee/validate', (req, res) => {
+        let nic = req.body.nic;
+        if (!nic) {
+            return res.send({
+                success: false,
+                message: "Error : NIC Cannot be Empty !"
+            })
+        }
+        if (nic === '902230245V') {
+            return res.send({
+                success: true,
+                message: "This is a Government Employee",
+                empID: 'E001'
+            })
+        }
+        return res.send({
+            success: false,
+            message: 'Not a Government Employee'
+        })
+    });
+
+    //Dialog Payment Gate Way Authorization using Mobile Number and PIN
+
+    app.post('/dialog/bill/auth', (req, res) => {
+        let mobileNumber = req.body.mobileNum;
+        let pin = req.body.pinNum;
+        let amount = req.body.amount;
+
+        if (!mobileNumber) {
+            return res.send({
+                success: false,
+                message: 'Error : Mobile Number cannot be Empty !'
+            })
+        }
+        if (!pin) {
+            return res.send({
+                success: false,
+                message: 'Error : PIN cannot be Empty !'
+            })
+        }
+
+        if (mobileNumber === '0771234567' && pin === '1234') {
+            return res.send({
+                success: true,
+                message: 'Payment Successful. Rs. ' + amount + ' added to your Dialog mobile: ' + mobileNumber + ' bill'
+            })
+        }
+        return res.send({
+            success: false,
+            message: 'Failed to Validate the Mobile Payment Request !'
+        })
+    });
 
     //This is to get the train details when the train ID is given. This will be getting the user selected train ID
     app.get('/station-list/bookings/:id', (req, res) => {
