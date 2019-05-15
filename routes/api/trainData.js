@@ -1,13 +1,14 @@
 const Train = require('../../models/trainDetails');
 const User = require('../../models/userDetails');
+const Bookings = require('../../models/bookingDetails');
 const nodemailer = require('nodemailer');
 const pwd = require('../../credentials/email');
 
 module.exports = (app) => {
+
     app.get('/', (req, res, next) => {
         res.json();
     });
-
 
     //This is to get train start stations to the train search
     app.get('/station-list/start', (req, res) => {
@@ -171,14 +172,9 @@ module.exports = (app) => {
         })
     });
 
-    //Add Train Booking Details to the Database
-    app.post('/bookings/add', (req, res) => {
-
-    });
-
     //Sampath Bank Credit Card Service
 
-    app.get('/sampath/creditCard/validation', (req, res) => {
+    app.post('/sampath/creditCard/validation', (req, res) => {
         let cardName = req.body.cardName;
         let cardNum = req.body.cardNum;
         let cvcNum = req.body.cvcNum;
@@ -218,24 +214,25 @@ module.exports = (app) => {
             })
         }
 
-        if (cardNum === '0000000000000000') {
+        if (cardNum === '1234567812345678' && cvcNum === '123') {
+            let details = {
+                cardName,
+                cardNum,
+                cvcNum,
+                exDate,
+                totalBill
+            };
+
             return res.send({
-                success: false,
-                message: "Error : Invalid Card Number !"
+                success: true,
+                message: "Payment Completed Successfully !",
+                details: details
             })
         }
-        let details = {
-            cardName,
-            cardNum,
-            cvcNum,
-            exDate,
-            totalBill
-        };
 
         return res.send({
-            success: true,
-            message: "Payment Completed Successfully !",
-            details: details
+            success: false,
+            message: "Cannot Validate the Payment Request !",
         })
 
     });
@@ -346,6 +343,79 @@ module.exports = (app) => {
             success: false,
             message: 'Failed to Validate the Mobile Payment Request !'
         })
+    });
+
+    //Add Train Booking Details to the Database
+    app.post('/bookings/add', (req, res) => {
+
+        let userID = req.body.userID;
+        let start = req.body.start;
+        let end = req.body.end;
+        let date = req.body.date;
+        let qty = req.body.qty;
+        let total = req.body.total;
+
+        if (!userID) {
+            return res.send({
+                success: false,
+                message: "Error : User ID cannot be Empty !"
+            })
+        }
+
+        if (!start) {
+            return res.send({
+                success: false,
+                message: "Error : Start Station cannot be Empty !"
+            })
+        }
+        if (!end) {
+            return res.send({
+                success: false,
+                message: "Error : End Station cannot be Empty !"
+            })
+        }
+        if (!date) {
+            return res.send({
+                success: false,
+                message: "Error : Date cannot be Empty !"
+            })
+        }
+        if (!qty) {
+            return res.send({
+                success: false,
+                message: "Error : Qty cannot be Empty !"
+            })
+        }
+        if (!total) {
+            return res.send({
+                success: false,
+                message: "Error : Total cannot be Empty !"
+            })
+        }
+
+        const booking = new Bookings();
+        booking.userID = userID;
+        booking.start = start;
+        booking.end = end;
+        booking.qty = qty;
+        booking.date = new Date(date);
+        booking.total = total;
+
+        booking.save((err, bookingData) => {
+            if (err) {
+                return res.send({
+                    success: false,
+                    message: "Error : Server Error !"
+                })
+            }
+            return res.send({
+                success: true,
+                message: "Train Ticket Reservation Successful !",
+                details: bookingData
+            })
+        });
+
+
     });
 
     //This is to get the train details when the train ID is given. This will be getting the user selected train ID
